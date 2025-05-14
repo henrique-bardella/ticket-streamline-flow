@@ -53,6 +53,9 @@ const Dashboard = () => {
   const inProgressCount = allTickets.filter(t => t.status === 'in_progress').length;
   const resolvedCount = allTickets.filter(t => t.status === 'resolved').length;
 
+  // Define an array of ticket categories to use instead of using Object.values(TicketCategory)
+  const ticketCategories: TicketCategory[] = ['PADE', 'META', 'ENCARTEIRAMENTO_POR_EXCECAO'];
+
   return (
     <MainLayout>
       <PageHeader 
@@ -149,7 +152,7 @@ const Dashboard = () => {
               </tr>
             </thead>
             <tbody>
-              {Object.values(TicketCategory).map((category) => {
+              {ticketCategories.map((category) => {
                 const categoryTickets = allTickets.filter(t => t.category === category);
                 const openCount = categoryTickets.filter(t => t.status === 'open').length;
                 const inProgressCount = categoryTickets.filter(t => t.status === 'in_progress').length;
