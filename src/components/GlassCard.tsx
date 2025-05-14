@@ -9,7 +9,7 @@ interface GlassCardProps {
 const GlassCard = ({ children, className }: GlassCardProps) => {
   return (
     <div className={cn(
-      "glass-card rounded-xl p-6",
+      "bg-white/20 backdrop-blur-lg rounded-xl p-6 border border-white/30 shadow-lg",
       className
     )}>
       {children}

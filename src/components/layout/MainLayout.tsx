@@ -4,6 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import StyledButton from "../StyledButton";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 interface NavItemProps {
   to: string;
@@ -21,8 +22,8 @@ const NavItem = ({ to, label, currentPath }: NavItemProps) => {
         className={cn(
           "block px-4 py-2 rounded-lg transition-all",
           isActive
-            ? "bg-primary text-white"
-            : "hover:bg-primary/10"
+            ? "bg-gradient-to-r from-logo-blue via-logo-purple to-logo-red text-white"
+            : "hover:bg-white/20"
         )}
       >
         {label}
@@ -38,11 +39,20 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gradient-radial from-white to-gray-100">
+    <div className="min-h-screen bg-gradient-to-br from-logo-blue via-logo-purple to-logo-red">
       <header className="sticky top-0 z-50 glass border-b border-white/20 shadow-sm">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <Link to="/" className="flex items-center">
-            <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
+            <div className="w-10 h-10 mr-3">
+              <AspectRatio ratio={1/1}>
+                <img 
+                  src="/lovable-uploads/500ab463-8a13-48d8-a38c-5966f6f16a7b.png" 
+                  alt="Logo" 
+                  className="object-contain" 
+                />
+              </AspectRatio>
+            </div>
+            <h1 className="text-2xl font-bold text-white">
               Ticket System
             </h1>
           </Link>
@@ -62,14 +72,15 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
             </nav>
 
             <div className="flex items-center space-x-4">
-              <div className="text-sm">
+              <div className="text-sm text-white">
                 <span className="font-medium">{currentUser?.name}</span>
-                <span className="ml-1 text-xs text-gray-500">({currentUser?.role})</span>
+                <span className="ml-1 text-xs text-white/80">({currentUser?.role})</span>
               </div>
               <StyledButton 
                 variant="outline" 
                 size="sm" 
                 onClick={logout}
+                className="bg-white/20 text-white border-white/30 hover:bg-white/30"
               >
                 Logout
               </StyledButton>
@@ -78,7 +89,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
 
           {/* Mobile menu button */}
           <button
-            className="md:hidden"
+            className="md:hidden text-white"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
             <svg
@@ -122,15 +133,16 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
                 )}
               </ul>
             </nav>
-            <div className="flex items-center justify-between px-4 py-4 border-t border-gray-200">
-              <div className="text-sm">
+            <div className="flex items-center justify-between px-4 py-4 border-t border-white/20">
+              <div className="text-sm text-white">
                 <span className="font-medium">{currentUser?.name}</span>
-                <span className="ml-1 text-xs text-gray-500">({currentUser?.role})</span>
+                <span className="ml-1 text-xs text-white/80">({currentUser?.role})</span>
               </div>
               <StyledButton 
                 variant="outline" 
                 size="sm" 
                 onClick={logout}
+                className="bg-white/20 text-white border-white/30 hover:bg-white/30"
               >
                 Logout
               </StyledButton>
@@ -143,8 +155,8 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
         {children}
       </main>
 
-      <footer className="bg-white/50 backdrop-blur-sm mt-12 py-6 border-t border-gray-200">
-        <div className="container mx-auto px-4 text-center text-sm text-gray-500">
+      <footer className="bg-white/10 backdrop-blur-sm mt-12 py-6 border-t border-white/20">
+        <div className="container mx-auto px-4 text-center text-sm text-white/80">
           <p>&copy; {new Date().getFullYear()} Ticket Registration System. All rights reserved.</p>
         </div>
       </footer>

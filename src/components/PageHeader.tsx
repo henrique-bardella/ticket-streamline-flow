@@ -10,9 +10,9 @@ interface PageHeaderProps {
 const PageHeader = ({ title, description, className }: PageHeaderProps) => {
   return (
     <div className={cn("mb-8", className)}>
-      <h1 className="text-3xl font-semibold text-primary mb-2 tracking-tight">{title}</h1>
+      <h1 className="text-3xl font-semibold mb-2 tracking-tight">{title}</h1>
       {description && (
-        <p className="text-muted-foreground">{description}</p>
+        <p className="opacity-80">{description}</p>
       )}
     </div>
   );

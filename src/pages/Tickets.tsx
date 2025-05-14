@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { Ticket } from "@/types";
+import { Search } from "lucide-react";
 
 const Tickets = () => {
   const { userTickets, assignedTickets, allTickets } = useTickets();
@@ -67,29 +68,33 @@ const Tickets = () => {
       <PageHeader 
         title="My Tickets" 
         description="View and manage your ticket requests"
+        className="text-white"
       />
 
-      <div className="mb-6">
+      <div className="mb-6 relative">
+        <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+          <Search className="h-5 w-5 text-white/70" />
+        </div>
         <Input
           type="text"
           placeholder="Search tickets..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="glass-input max-w-md"
+          className="bg-white/20 border-white/30 text-white pl-10 backdrop-blur-md max-w-md placeholder:text-white/70"
         />
       </div>
 
       {filteredTickets.length === 0 ? (
         <GlassCard className="text-center py-12">
-          <h3 className="text-xl font-medium mb-2">No tickets found</h3>
-          <p className="text-muted-foreground mb-6">
+          <h3 className="text-xl font-medium mb-2 text-white">No tickets found</h3>
+          <p className="text-white/80 mb-6">
             {searchTerm ? 
               "No tickets match your search criteria" : 
               "You don't have any tickets yet"}
           </p>
           <Link 
             to="/" 
-            className="text-primary hover:text-primary-dark underline"
+            className="text-white hover:text-white/80 underline"
           >
             Create a new ticket
           </Link>
@@ -98,19 +103,19 @@ const Tickets = () => {
         <div className="space-y-4">
           {filteredTickets.map((ticket) => (
             <Link key={ticket.id} to={`/ticket/${ticket.id}`}>
-              <GlassCard className="hover:shadow-md transition-all">
+              <GlassCard className="hover:bg-white/30 transition-all duration-300">
                 <div className="flex flex-col md:flex-row justify-between">
                   <div>
-                    <h3 className="text-lg font-medium mb-1">
+                    <h3 className="text-lg font-medium mb-1 text-white">
                       {getCategoryDisplayName(ticket.category)} - {ticket.solicitationNumber}
                     </h3>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-white/80">
                       Agency: {ticket.agency} | Account: {ticket.accountNumber}
                     </p>
                   </div>
                   <div className="mt-4 md:mt-0 md:text-right">
                     <StatusBadge status={ticket.status} />
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-xs text-white/80 mt-1">
                       Last updated: {format(new Date(ticket.lastInteractionAt), "MMM d, yyyy 'at' h:mm a")}
                     </p>
                   </div>

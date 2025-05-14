@@ -71,6 +71,12 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// Add logo-inspired gradient colors
+				logo: {
+					blue: '#2445A7',
+					purple: '#972D7A',
+					red: '#CC1E5F',
 				}
 			},
 			borderRadius: {
@@ -112,6 +118,7 @@ export default {
 			backgroundImage: {
 				'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
 				'glass': 'linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0))',
+				'logo-gradient': 'linear-gradient(135deg, #2445A7, #972D7A, #CC1E5F)',
 			},
 			backdropBlur: {
 				'lg': '20px',
