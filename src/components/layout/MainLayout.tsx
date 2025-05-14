@@ -39,8 +39,8 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-logo-blue via-logo-purple to-logo-red">
-      <header className="sticky top-0 z-50 glass border-b border-white/20 shadow-sm">
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-50 glass border-b border-white/20 shadow-sm bg-gradient-to-br from-logo-blue via-logo-purple to-logo-red">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <Link to="/" className="flex items-center">
             <div className="w-10 h-10 mr-3">
