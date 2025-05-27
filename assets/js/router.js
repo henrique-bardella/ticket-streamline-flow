@@ -1,88 +1,124 @@
-
 class Router {
     constructor() {
         this.routes = {
-            '': () => this.checkAuth() ? this.renderHome() : this.renderLogin(),
-            'login': () => this.renderLogin(),
-            'home': () => this.requireAuth(() => this.renderHome()),
-            'tickets': () => this.requireAuth(() => this.renderTickets()),
-            'new-ticket': () => this.requireAuth(() => this.renderNewTicket()),
-            'ticket': () => this.requireAuth(() => this.renderTicketDetail()),
-            'admin': () => this.requireAuth(() => this.renderAdmin()),
-            'dashboard': () => this.requireAuth(() => this.renderDashboard())
+            '/login': this.renderLogin,
+            '/': this.renderHome,
+            '/triage': this.renderTriage,
+            '/new-ticket': this.renderNewTicket,
+            '/tickets': this.renderTicketsList,
+            '/ticket': this.renderTicketDetail,
+            '/dashboard': this.renderDashboard,
+            '/admin': this.renderAdmin,
+            '/unauthorized': this.renderUnauthorized
         };
 
         this.init();
     }
 
     init() {
-        window.addEventListener('hashchange', () => this.route());
-        window.addEventListener('load', () => this.route());
+        window.addEventListener('hashchange', () => this.handleRoute());
+        window.addEventListener('load', () => this.handleRoute());
     }
 
-    route() {
-        const hash = window.location.hash.slice(1);
-        const [path, ...params] = hash.split('/');
-        this.currentParams = params;
+    handleRoute() {
+        const hash = window.location.hash.slice(1) || '/';
+        const [path, params] = hash.split('?');
+        const [route, ...pathParts] = path.split('/').filter(p => p);
         
-        const handler = this.routes[path] || (() => this.render404());
-        handler();
-    }
-
-    checkAuth() {
-        return window.authManager.isAuthenticated();
-    }
-
-    requireAuth(callback) {
-        if (this.checkAuth()) {
-            callback();
+        let routeKey = '/' + (route || '');
+        
+        // Handle parameterized routes
+        if (route === 'ticket' && pathParts.length > 0) {
+            routeKey = '/ticket';
+        }
+        
+        const routeHandler = this.routes[routeKey];
+        
+        if (routeHandler) {
+            try {
+                routeHandler.call(this, pathParts[0], this.parseParams(params));
+            } catch (error) {
+                console.error('Route error:', error);
+                this.renderError(error.message);
+            }
         } else {
-            window.location.hash = '#/login';
+            this.render404();
         }
     }
 
+    parseParams(paramString) {
+        if (!paramString) return {};
+        
+        const params = {};
+        paramString.split('&').forEach(param => {
+            const [key, value] = param.split('=');
+            params[decodeURIComponent(key)] = decodeURIComponent(value);
+        });
+        return params;
+    }
+
+    navigate(path) {
+        window.location.hash = path;
+    }
+
     renderLogin() {
+        if (window.authManager.isAuthenticated()) {
+            this.navigate('/');
+            return;
+        }
+
         const app = document.getElementById('app');
         app.innerHTML = `
-            <div class="min-vh-100 d-flex align-items-center justify-content-center" style="background: linear-gradient(radial-circle, #ffffff, #f3f4f6);">
-                <div class="container">
-                    <div class="row justify-content-center">
-                        <div class="col-md-6 col-lg-4">
-                            <div class="text-center mb-4">
-                                <h1 class="h2 fw-bold mb-2" style="background: linear-gradient(135deg, var(--logo-blue), var(--logo-purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-                                    Ticket System
-                                </h1>
-                                <p class="text-muted">Sign in to manage your tickets</p>
+            <div class="login-container">
+                <div class="login-card fade-in">
+                    <div class="text-center mb-4">
+                        <div class="logo-icon mx-auto mb-3">
+                            <i class="fas fa-ticket-alt"></i>
+                        </div>
+                        <h1 class="text-gradient mb-2">Sistema de Tickets</h1>
+                        <p class="text-muted">Faça login para continuar</p>
+                    </div>
+                    
+                    <form id="loginForm" class="needs-validation" novalidate>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control form-control-glass" id="email" required>
+                            <div class="invalid-feedback">
+                                Por favor, insira um email válido.
                             </div>
-                            
-                            <div class="glass-card p-4 mb-4">
-                                <form id="loginForm">
-                                    <div class="mb-3">
-                                        <label for="email" class="form-label">Email</label>
-                                        <input type="email" class="form-control form-control-custom" id="email" required>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="password" class="form-label">Password</label>
-                                        <input type="password" class="form-control form-control-custom" id="password" required>
-                                    </div>
-                                    <button type="submit" class="btn btn-primary-custom w-100">Sign In</button>
-                                </form>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="password" class="form-label">Senha</label>
+                            <input type="password" class="form-control form-control-glass" id="password" required>
+                            <div class="invalid-feedback">
+                                Por favor, insira sua senha.
                             </div>
-                            
-                            <div class="glass-card p-4">
-                                <h5 class="text-center mb-3">Demo Accounts</h5>
-                                <p class="text-center text-muted small mb-3">Click below to login with a demo account</p>
-                                <div class="row g-2">
-                                    <div class="col-4">
-                                        <button class="btn btn-outline-custom w-100" onclick="loginAs('requester')">Requester</button>
-                                    </div>
-                                    <div class="col-4">
-                                        <button class="btn btn-outline-custom w-100" onclick="loginAs('analyst')">Analyst</button>
-                                    </div>
-                                    <div class="col-4">
-                                        <button class="btn btn-outline-custom w-100" onclick="loginAs('admin')">Admin</button>
-                                    </div>
-                                </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary-custom w-100 mb-4" id="loginBtn">
+                            <span class="login-text">Entrar</span>
+                            <div class="spinner d-none"></div>
+                        </button>
+                    </form>
+                    
+                    <div class="glass-card">
+                        <h6 class="text-center mb-3">Contas de Demonstração</h6>
+                        <div class="row g-2">
+                            <div class="col-4">
+                                <button class="btn btn-outline-custom w-100 demo-login" data-role="requester">
+                                    Solicitante
+                                </button>
+                            </div>
+                            <div class="col-4">
+                                <button class="btn btn-outline-custom w-100 demo-login" data-role="analyst">
+                                    Analista
+                                </button>
+                            </div>
+                            <div class="col-4">
+                                <button class="btn btn-outline-custom w-100 demo-login" data-role="admin">
+                                    Admin
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -90,265 +126,343 @@ class Router {
             </div>
         `;
 
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            
-            try {
-                await window.authManager.login(email, password);
-                window.location.hash = '#/home';
-            } catch (error) {
-                alert('Login failed: ' + error.message);
-            }
-        });
-    }
-
-    renderMainLayout(content) {
-        const user = window.authManager.currentUser;
-        return `
-            <div class="min-vh-100" style="background-color: var(--background);">
-                <header class="main-header header-gradient glass">
-                    <div class="container">
-                        <div class="d-flex align-items-center justify-content-between py-3">
-                            <a href="#/home" class="logo-container">
-                                <img src="/lovable-uploads/500ab463-8a13-48d8-a38c-5966f6f16a7b.png" alt="Logo" class="logo-img">
-                                <h1 class="h4 mb-0 text-white fw-bold">Ticket System</h1>
-                            </a>
-                            
-                            <nav class="d-none d-md-flex align-items-center">
-                                <ul class="nav me-4">
-                                    <li class="nav-item">
-                                        <a class="nav-link-custom" href="#/home">Home</a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a class="nav-link-custom" href="#/tickets">My Tickets</a>
-                                    </li>
-                                    ${user.role === 'admin' ? '<li class="nav-item"><a class="nav-link-custom" href="#/admin">Admin</a></li>' : ''}
-                                    ${(user.role === 'admin' || user.role === 'analyst') ? '<li class="nav-item"><a class="nav-link-custom" href="#/dashboard">Dashboard</a></li>' : ''}
-                                </ul>
-                                
-                                <div class="d-flex align-items-center gap-3">
-                                    <div class="text-white small">
-                                        <span class="fw-medium">${user.name}</span>
-                                        <span class="opacity-75">(${user.role})</span>
-                                    </div>
-                                    <button class="btn btn-custom btn-sm" onclick="window.authManager.logout()">Logout</button>
-                                </div>
-                            </nav>
-                            
-                            <button class="btn btn-custom d-md-none" type="button" data-bs-toggle="collapse" data-bs-target="#mobileMenu">
-                                <i class="fas fa-bars"></i>
-                            </button>
-                        </div>
-                        
-                        <div class="collapse d-md-none" id="mobileMenu">
-                            <div class="mobile-menu p-3">
-                                <nav class="mb-3">
-                                    <ul class="nav flex-column">
-                                        <li class="nav-item"><a class="nav-link-custom" href="#/home">Home</a></li>
-                                        <li class="nav-item"><a class="nav-link-custom" href="#/tickets">My Tickets</a></li>
-                                        ${user.role === 'admin' ? '<li class="nav-item"><a class="nav-link-custom" href="#/admin">Admin</a></li>' : ''}
-                                        ${(user.role === 'admin' || user.role === 'analyst') ? '<li class="nav-item"><a class="nav-link-custom" href="#/dashboard">Dashboard</a></li>' : ''}
-                                    </ul>
-                                </nav>
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <div class="small">
-                                        <span class="fw-medium">${user.name}</span>
-                                        <span class="text-muted">(${user.role})</span>
-                                    </div>
-                                    <button class="btn btn-outline-custom btn-sm" onclick="window.authManager.logout()">Logout</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </header>
-                
-                <main class="container py-4">
-                    ${content}
-                </main>
-                
-                <footer class="bg-light bg-opacity-10 mt-5 py-3 border-top" style="border-color: rgba(255, 255, 255, 0.2) !important;">
-                    <div class="container text-center">
-                        <p class="small text-muted mb-0">&copy; ${new Date().getFullYear()} Ticket Registration System. All rights reserved.</p>
-                    </div>
-                </footer>
-            </div>
-        `;
+        this.setupLoginHandlers();
     }
 
     renderHome() {
+        if (!window.authManager.requireAuth()) return;
+
         const user = window.authManager.currentUser;
-        const content = `
-            <div class="text-center mb-5">
-                <h1 class="h2 fw-bold mb-2">Welcome, ${user.name}!</h1>
-                <p class="text-muted">Create a new ticket request or manage your existing tickets.</p>
-            </div>
-            
-            <div class="row justify-content-center">
-                <div class="col-lg-10">
-                    <h3 class="h5 fw-semibold mb-4">Create a New Request</h3>
-                    <div class="row g-4">
-                        <div class="col-md-4">
-                            <div class="glass-card p-4 category-card h-100" onclick="window.location.hash='#/new-ticket/PADE'">
-                                <h4 class="h5 fw-semibold mb-2">PADE</h4>
-                                <p class="text-muted mb-4">Create a PADE request for account and client management related issues.</p>
-                                <button class="btn btn-primary-custom w-100">Create Request</button>
+        const stats = window.ticketManager.getStatusStats();
+        
+        const app = document.getElementById('app');
+        app.innerHTML = `
+            ${this.renderHeader()}
+            <div class="container-fluid py-4">
+                <div class="page-header fade-in">
+                    <h1 class="page-title">Bem-vindo, ${user.name}!</h1>
+                    <p class="page-subtitle">Gerencie seus tickets e solicitações</p>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="glass-card text-center">
+                            <div class="category-icon mx-auto mb-2">
+                                <i class="fas fa-ticket-alt"></i>
                             </div>
+                            <h3 class="text-gradient">${stats.total}</h3>
+                            <p class="mb-0">Total de Tickets</p>
                         </div>
-                        <div class="col-md-4">
-                            <div class="glass-card p-4 category-card h-100" onclick="window.location.hash='#/new-ticket/META'">
-                                <h4 class="h5 fw-semibold mb-2">META</h4>
-                                <p class="text-muted mb-4">Submit a META request for target and performance related adjustments.</p>
-                                <button class="btn btn-primary-custom w-100">Create Request</button>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="glass-card text-center">
+                            <div class="category-icon mx-auto mb-2">
+                                <i class="fas fa-clock"></i>
                             </div>
+                            <h3 class="text-gradient">${stats.open}</h3>
+                            <p class="mb-0">Abertos</p>
                         </div>
-                        <div class="col-md-4">
-                            <div class="glass-card p-4 category-card h-100" onclick="window.location.hash='#/new-ticket/ENCARTEIRAMENTO_POR_EXCECAO'">
-                                <h4 class="h5 fw-semibold mb-2">ENCARTEIRAMENTO POR EXCEÇÃO</h4>
-                                <p class="text-muted mb-4">Request exceptional portfolio management changes and reassignments.</p>
-                                <button class="btn btn-primary-custom w-100">Create Request</button>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="glass-card text-center">
+                            <div class="category-icon mx-auto mb-2">
+                                <i class="fas fa-spinner"></i>
+                            </div>
+                            <h3 class="text-gradient">${stats.in_progress}</h3>
+                            <p class="mb-0">Em Andamento</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="glass-card text-center">
+                            <div class="category-icon mx-auto mb-2">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <h3 class="text-gradient">${stats.resolved}</h3>
+                            <p class="mb-0">Resolvidos</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-lg-8">
+                        <div class="glass-card">
+                            <h3 class="mb-4">Criar Nova Solicitação</h3>
+                            <div class="row">
+                                ${Object.entries(window.ticketManager.categories).map(([key, category]) => `
+                                    <div class="col-md-4 mb-3">
+                                        <div class="category-card slide-in" onclick="router.navigate('/new-ticket?category=${key}')">
+                                            <div class="category-icon">
+                                                <i class="${category.icon}"></i>
+                                            </div>
+                                            <h5>${category.name}</h5>
+                                            <p class="text-muted small">${category.description}</p>
+                                        </div>
+                                    </div>
+                                `).join('')}
                             </div>
                         </div>
                     </div>
                     
-                    <div class="text-center mt-5">
-                        <a href="#/tickets" class="btn btn-outline-custom">View My Tickets</a>
+                    <div class="col-lg-4">
+                        <div class="glass-card">
+                            <h3 class="mb-4">Ações Rápidas</h3>
+                            <div class="d-grid gap-3">
+                                <button class="btn btn-outline-custom" onclick="router.navigate('/tickets')">
+                                    <i class="fas fa-list me-2"></i>
+                                    Ver Meus Tickets
+                                </button>
+                                ${user.role !== 'requester' ? `
+                                    <button class="btn btn-outline-custom" onclick="router.navigate('/dashboard')">
+                                        <i class="fas fa-chart-bar me-2"></i>
+                                        Dashboard
+                                    </button>
+                                ` : ''}
+                                ${user.role === 'admin' ? `
+                                    <button class="btn btn-outline-custom" onclick="router.navigate('/admin')">
+                                        <i class="fas fa-cog me-2"></i>
+                                        Administração
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         `;
-        
-        document.getElementById('app').innerHTML = this.renderMainLayout(content);
     }
 
-    renderTickets() {
-        const tickets = window.ticketManager.getUserTickets();
-        const content = `
-            <div class="mb-4">
-                <h1 class="h2 fw-bold mb-2">My Tickets</h1>
-                <p class="text-muted">View and manage your ticket requests</p>
-            </div>
-            
-            <div class="mb-4">
-                <div class="input-group" style="max-width: 400px;">
-                    <span class="input-group-text">
-                        <i class="fas fa-search"></i>
-                    </span>
-                    <input type="text" class="form-control" placeholder="Search tickets..." id="searchInput">
+    renderTriage() {
+        // Implementation for triage page
+    }
+
+    renderNewTicket() {
+        // Implementation for new ticket page
+    }
+
+    renderTicketsList() {
+        // Implementation for tickets list page
+    }
+
+    renderTicketDetail() {
+        // Implementation for ticket detail page
+    }
+
+    renderDashboard() {
+        // Implementation for dashboard page
+    }
+
+    renderAdmin() {
+        // Implementation for admin page
+    }
+
+    renderUnauthorized() {
+        // Implementation for unauthorized access page
+    }
+
+    renderError(message) {
+        const app = document.getElementById('app');
+        app.innerHTML = `
+            <div class="container-fluid py-5">
+                <div class="glass-card text-center">
+                    <i class="fas fa-exclamation-triangle text-warning mb-3" style="font-size: 3rem;"></i>
+                    <h2>Erro</h2>
+                    <p class="text-muted">${message}</p>
+                    <button class="btn btn-primary-custom" onclick="router.navigate('/')">
+                        Voltar ao Início
+                    </button>
                 </div>
             </div>
-            
-            <div id="ticketsList">
-                ${tickets.length === 0 ? 
-                    `<div class="glass-card p-5 text-center">
-                        <h4 class="h5 fw-medium mb-2">No tickets found</h4>
-                        <p class="text-muted mb-4">You don't have any tickets yet</p>
-                        <a href="#/home" class="btn btn-primary-custom">Create a new ticket</a>
-                    </div>` :
-                    tickets.map(ticket => `
-                        <div class="glass-card p-4 mb-3 ticket-card" onclick="window.location.hash='#/ticket/${ticket.id}'">
-                            <div class="row align-items-center">
-                                <div class="col-md-8">
-                                    <h5 class="fw-medium mb-1">${this.getCategoryDisplayName(ticket.category)} - ${ticket.solicitationNumber}</h5>
-                                    <p class="text-muted small mb-0">Agency: ${ticket.agency} | Account: ${ticket.accountNumber}</p>
-                                </div>
-                                <div class="col-md-4 text-md-end mt-3 mt-md-0">
-                                    <span class="status-badge status-${ticket.status.replace('_', '-')}">${this.getStatusDisplayName(ticket.status)}</span>
-                                    <p class="text-muted small mt-1 mb-0">Last updated: ${new Date(ticket.lastInteractionAt).toLocaleDateString()}</p>
-                                </div>
-                            </div>
-                        </div>
-                    `).join('')
-                }
-            </div>
         `;
-        
-        document.getElementById('app').innerHTML = this.renderMainLayout(content);
-        
-        // Add search functionality
-        const searchInput = document.getElementById('searchInput');
-        if (searchInput) {
-            searchInput.addEventListener('input', (e) => {
-                const term = e.target.value.toLowerCase();
-                const filteredTickets = tickets.filter(ticket => 
-                    ticket.solicitationNumber.toLowerCase().includes(term) ||
-                    ticket.agency.toLowerCase().includes(term) ||
-                    ticket.accountNumber.toLowerCase().includes(term)
-                );
-                this.updateTicketsList(filteredTickets);
-            });
-        }
-    }
-
-    updateTicketsList(tickets) {
-        const ticketsList = document.getElementById('ticketsList');
-        if (ticketsList) {
-            ticketsList.innerHTML = tickets.length === 0 ? 
-                `<div class="glass-card p-5 text-center">
-                    <h4 class="h5 fw-medium mb-2">No tickets found</h4>
-                    <p class="text-muted">No tickets match your search criteria</p>
-                </div>` :
-                tickets.map(ticket => `
-                    <div class="glass-card p-4 mb-3 ticket-card" onclick="window.location.hash='#/ticket/${ticket.id}'">
-                        <div class="row align-items-center">
-                            <div class="col-md-8">
-                                <h5 class="fw-medium mb-1">${this.getCategoryDisplayName(ticket.category)} - ${ticket.solicitationNumber}</h5>
-                                <p class="text-muted small mb-0">Agency: ${ticket.agency} | Account: ${ticket.accountNumber}</p>
-                            </div>
-                            <div class="col-md-4 text-md-end mt-3 mt-md-0">
-                                <span class="status-badge status-${ticket.status.replace('_', '-')}">${this.getStatusDisplayName(ticket.status)}</span>
-                                <p class="text-muted small mt-1 mb-0">Last updated: ${new Date(ticket.lastInteractionAt).toLocaleDateString()}</p>
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
-        }
-    }
-
-    getCategoryDisplayName(category) {
-        const names = {
-            'PADE': 'PADE',
-            'META': 'META',
-            'ENCARTEIRAMENTO_POR_EXCECAO': 'ENCARTEIRAMENTO POR EXCEÇÃO'
-        };
-        return names[category] || category;
-    }
-
-    getStatusDisplayName(status) {
-        const names = {
-            'open': 'Open',
-            'in_progress': 'In Progress',
-            'resolved': 'Resolved'
-        };
-        return names[status] || status;
     }
 
     render404() {
-        document.getElementById('app').innerHTML = `
-            <div class="min-vh-100 d-flex align-items-center justify-content-center">
-                <div class="text-center">
-                    <h1 class="display-1 fw-bold">404</h1>
-                    <p class="h4 text-muted mb-4">Page not found</p>
-                    <a href="#/home" class="btn btn-primary-custom">Return to Home</a>
+        const app = document.getElementById('app');
+        app.innerHTML = `
+            <div class="container-fluid py-5">
+                <div class="glass-card text-center">
+                    <i class="fas fa-search text-muted mb-3" style="font-size: 3rem;"></i>
+                    <h2>Página não encontrada</h2>
+                    <p class="text-muted">A página que você está procurando não existe.</p>
+                    <button class="btn btn-primary-custom" onclick="router.navigate('/')">
+                        Voltar ao Início
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    renderHeader() {
+        const user = window.authManager.currentUser;
+        if (!user) return '';
+
+        return `
+            <header class="main-header">
+                <div class="container-fluid">
+                    <nav class="navbar navbar-expand-lg">
+                        <a class="logo-container" href="#/" onclick="router.navigate('/')">
+                            <div class="logo-icon">
+                                <i class="fas fa-ticket-alt"></i>
+                            </div>
+                            Sistema de Tickets
+                        </a>
+                        
+                        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                            <span class="navbar-toggler-icon"></span>
+                        </button>
+                        
+                        <div class="collapse navbar-collapse" id="navbarNav">
+                            <ul class="navbar-nav me-auto">
+                                <li class="nav-item">
+                                    <a class="nav-link-custom" href="#/" onclick="router.navigate('/')">
+                                        <i class="fas fa-home me-1"></i>Início
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link-custom" href="#/tickets" onclick="router.navigate('/tickets')">
+                                        <i class="fas fa-list me-1"></i>Meus Tickets
+                                    </a>
+                                </li>
+                                ${user.role !== 'requester' ? `
+                                    <li class="nav-item">
+                                        <a class="nav-link-custom" href="#/dashboard" onclick="router.navigate('/dashboard')">
+                                            <i class="fas fa-chart-bar me-1"></i>Dashboard
+                                        </a>
+                                    </li>
+                                ` : ''}
+                                ${user.role === 'admin' ? `
+                                    <li class="nav-item">
+                                        <a class="nav-link-custom" href="#/admin" onclick="router.navigate('/admin')">
+                                            <i class="fas fa-cog me-1"></i>Admin
+                                        </a>
+                                    </li>
+                                ` : ''}
+                            </ul>
+                            
+                            <div class="navbar-nav">
+                                <div class="nav-item dropdown">
+                                    <a class="nav-link-custom dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                                        <i class="fas fa-user-circle me-1"></i>
+                                        ${user.name} (${user.role})
+                                    </a>
+                                    <ul class="dropdown-menu dropdown-menu-end glass">
+                                        <li><a class="dropdown-item" href="#" onclick="window.authManager.logout()">
+                                            <i class="fas fa-sign-out-alt me-2"></i>Sair
+                                        </a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </nav>
+                </div>
+            </header>
+        `;
+    }
+
+    setupLoginHandlers() {
+        const form = document.getElementById('loginForm');
+        const loginBtn = document.getElementById('loginBtn');
+        
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!form.checkValidity()) {
+                e.stopPropagation();
+                form.classList.add('was-validated');
+                return;
+            }
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                loginBtn.disabled = true;
+                document.querySelector('.login-text').classList.add('d-none');
+                document.querySelector('.spinner').classList.remove('d-none');
+                
+                await window.authManager.login(email, password);
+                this.showToast('Login realizado com sucesso!', 'success');
+                this.navigate('/');
+            } catch (error) {
+                this.showToast(error.message, 'error');
+            } finally {
+                loginBtn.disabled = false;
+                document.querySelector('.login-text').classList.remove('d-none');
+                document.querySelector('.spinner').classList.add('d-none');
+            }
+        });
+        
+        // Demo login buttons
+        document.querySelectorAll('.demo-login').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const role = e.target.dataset.role;
+                const emails = {
+                    'requester': 'requester@example.com',
+                    'analyst': 'analyst@example.com',
+                    'admin': 'admin@example.com'
+                };
+                
+                try {
+                    await window.authManager.login(emails[role], 'password');
+                    this.showToast(`Login como ${role} realizado!`, 'success');
+                    this.navigate('/');
+                } catch (error) {
+                    this.showToast(error.message, 'error');
+                }
+            });
+        });
+    }
+
+    showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = `toast-custom position-fixed top-0 end-0 m-3 p-3 ${type === 'error' ? 'border-danger' : type === 'success' ? 'border-success' : 'border-info'}`;
+        toast.style.zIndex = '9999';
+        toast.innerHTML = `
+            <div class="d-flex align-items-center">
+                <i class="fas fa-${type === 'error' ? 'exclamation-circle text-danger' : type === 'success' ? 'check-circle text-success' : 'info-circle text-info'} me-2"></i>
+                <span>${message}</span>
+                <button type="button" class="btn-close ms-auto" onclick="this.parentElement.parentElement.remove()"></button>
+            </div>
+        `;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            if (toast.parentElement) {
+                toast.remove();
+            }
+        }, 5000);
+    }
+
+    renderError(message) {
+        const app = document.getElementById('app');
+        app.innerHTML = `
+            <div class="container-fluid py-5">
+                <div class="glass-card text-center">
+                    <i class="fas fa-exclamation-triangle text-warning mb-3" style="font-size: 3rem;"></i>
+                    <h2>Erro</h2>
+                    <p class="text-muted">${message}</p>
+                    <button class="btn btn-primary-custom" onclick="router.navigate('/')">
+                        Voltar ao Início
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    render404() {
+        const app = document.getElementById('app');
+        app.innerHTML = `
+            <div class="container-fluid py-5">
+                <div class="glass-card text-center">
+                    <i class="fas fa-search text-muted mb-3" style="font-size: 3rem;"></i>
+                    <h2>Página não encontrada</h2>
+                    <p class="text-muted">A página que você está procurando não existe.</p>
+                    <button class="btn btn-primary-custom" onclick="router.navigate('/')">
+                        Voltar ao Início
+                    </button>
                 </div>
             </div>
         `;
     }
 }
 
-// Helper function for demo login
-window.loginAs = async function(role) {
-    const emailMap = {
-        'requester': 'requester@example.com',
-        'analyst': 'analyst@example.com',
-        'admin': 'admin@example.com'
-    };
-    
-    try {
-        await window.authManager.login(emailMap[role], 'password');
-        window.location.hash = '#/home';
-    } catch (error) {
-        alert('Login failed');
-    }
-};
+window.router = new Router();
